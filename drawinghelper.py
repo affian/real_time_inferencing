@@ -30,7 +30,7 @@ class DrawingHelper:
         # Drawing constants
         # Possibly replace with a namespace?
         self.FONT = cv2.FONT_HERSHEY_SIMPLEX
-        self.FONT_SCALE = 0.5        
+        self.FONT_SCALE = 0.2        
         self.THICKNESS = 1
         self.BB_THICKNESS = 1
         self.FRAME_THRESHOLD = 60  # This should be an even number.
@@ -49,7 +49,10 @@ class DrawingHelper:
         self.cell_type_b = 'fibroblast'
         self.cell_type_c = 'lymphocyte'
 
-
+        #confidence threshold (may not be necessary)
+        self.confidence_thresh = 0.99
+        #self.confidence_thresh_b = 0.99
+        #self.confidence_thresh_c = 0.54
 
     def start(self):
         # start the thread to read frames from the queue
@@ -95,49 +98,71 @@ class DrawingHelper:
         self.stopped = True
 
     def draw_bounding_box(self, json_resp, image):
-                 
+        
         for i in range(len(json_resp)):
-            x_max = json_resp[i]['xmax']
-            y_max = json_resp[i]['ymax']
 
-            x_min = json_resp[i]['xmin']
-            y_min = json_resp[i]['ymin']
+            if json_resp[i]['confidence'] >= self.confidence_thresh: #apply confidence threshold to json response
 
-            #preferred coordinates to place labels directly above bounding boxes
-            y = y_min - 5 if y_min - 5 > 5 else y_min + 5
+                #print('CONFIDENCE:', json_resp[i]['confidence'])
 
-            #assign bounding box colours to each class
-            if json_resp[i]['label'] == 'epithelial':
-                display_BB_colour = self.BB_COLOUR_BLUE
+                x_max = json_resp[i]['xmax'] 
+                y_max = json_resp[i]['ymax'] 
 
-            elif json_resp[i]['label'] == 'fibroblast':
-                display_BB_colour = self.BB_COLOUR_RED
+                x_min = json_resp[i]['xmin'] 
+                y_min = json_resp[i]['ymin'] 
 
-            else:
-                display_BB_colour = self.BB_COLOUR_YELLOW
+                #resizing bounding box coordinates according to range 
+                x2 = x_max - 10 if x_max - 10 >  10 else x_max + 10
+                x3 = x_min + 10 if x_min + 10 >  10 else x_min - 10
 
-            cv2.rectangle(image, (x_max,y_max), (x_min, y_min), display_BB_colour, self.BB_THICKNESS)
+                y2 = y_max - 10 if y_max - 10 >  10 else y_max + 10
+                y3 = y_min + 10 if y_min + 10 >  10 else y_min - 10
 
-            #put text label on bounding box
-            if json_resp[i]['label'] == 'epithelial':
-                display_label = self.cell_type_a
+                #preferred coordinates to place labels directly above bounding boxes
+                y = y_min - 5 if y_min - 5 > 5 else y_min + 5
 
-            elif json_resp[i]['label'] == 'fibroblast':
-                display_label = self.cell_type_b
+                #assign bounding box colours to each class
+                if json_resp[i]['label'] == 'epithelial':
+                    display_BB_colour = self.BB_COLOUR_BLUE
 
-            else: 
-                display_label = self.cell_type_c
+                elif json_resp[i]['label'] == 'fibroblast':
+                    display_BB_colour = self.BB_COLOUR_RED
 
-            #assign corresponding font colours to each class
-            if json_resp[i]['label'] == 'epithelial':
-                font_colour = self.FONT_COLOUR_BLUE
+                elif json_resp[i]['label'] == 'lymphocyte':
+                    display_BB_colour = self.BB_COLOUR_YELLOW
 
-            elif json_resp[i]['label'] == 'fibroblast':
-                font_colour = self.FONT_COLOUR_RED
+                else:
+                    return(0)
 
-            else:
-                font_colour = self.FONT_COLOUR_YELLOW
+                cv2.rectangle(image, (x2,y2), (x3, y3), display_BB_colour, self.BB_THICKNESS)
+
+                #put text label on bounding box
+                if json_resp[i]['label'] == 'epithelial':
+                    display_label = self.cell_type_a
+
+                elif json_resp[i]['label'] == 'fibroblast':
+                    display_label = self.cell_type_b
+
+                elif json_resp[i]['label'] == 'lymphocyte': 
+                    display_label = self.cell_type_c
+
+                else:
+                    return(0)
+
+                #assign corresponding font colours to each class
+                if json_resp[i]['label'] == 'epithelial':
+                    font_colour = self.FONT_COLOUR_BLUE
+
+                elif json_resp[i]['label'] == 'fibroblast':
+                    font_colour = self.FONT_COLOUR_RED
+
+                elif json_resp[i]['label'] == 'lymphocyte':
+                    font_colour = self.FONT_COLOUR_YELLOW
+
+                else:
+                    return(0)
 
 
-            cv2.putText(image, display_label, (x_min, y), self.FONT, 0.37, font_colour, lineType=cv2.LINE_AA)
+                cv2.putText(image, display_label, (x_min, y), self.FONT, 0.35, font_colour, lineType=cv2.LINE_AA)
     
+
