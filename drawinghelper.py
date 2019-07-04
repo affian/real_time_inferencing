@@ -30,31 +30,30 @@ class DrawingHelper:
         # Drawing constants
         # Possibly replace with a namespace?
         self.FONT = cv2.FONT_HERSHEY_SIMPLEX
-        self.FONT_SCALE = 1        
+        self.FONT_SCALE = 0.2        
         self.THICKNESS = 1
-        self.FONT_COLOUR = (255,255,255)
-        self.BB_COLOUR = (255, 98, 0)   # IBM blue 
-        self.BB_THICKNESS = 3
-        self.RECTANGLE_BACKGROUND = (0, 0, 0)
-        self.TEXT_HEIGHT = 75
-        self.TEXT_WIDTH = int(self.VID_HEIGHT*0.95)
-        self.WIDTH_FACTOR = 5
+        self.BB_THICKNESS = 1
+        self.FRAME_THRESHOLD = 600  # This should be an even number.
 
-        # Letter tracking constants
-        # NOTE: Alot of these values are chosen through trial and error for
-        # a nice looking visual effect. Do not read too much into the values.
-        self.FRAME_THRESHOLD = 60  # This should be an even number.
-        self.WIDE_LETTER_LIST = ["g", "j", "k", "m", "u"]
-        self.WIDE_LETTER_FACTOR = 11
-        self.SLIM_LETTER_FACTOR = 7
-        self.MAX_LETTERS_TO_DISPLAY = 20
+        # The different font and bbox colours- dependent on cell type.
+        self.FONT_COLOUR_BLUE = (255, 98, 0)
+        self.FONT_COLOUR_RED = (74, 39, 186)
+        self.FONT_COLOUR_YELLOW = (51, 184, 253)
 
-        # Letter tracking variables
-        self.letter_deque = deque(maxlen=self.FRAME_THRESHOLD)
-        self.constant_letter_count = 0
-        self.count_slim_letter = 0
-        self.count_wide_letter = 0
-        self.constant_letter_dict = {}
+        self.BB_COLOUR_BLUE = (255, 98, 0)   # IBM blue 
+        self.BB_COLOUR_RED = (74, 39, 186)
+        self.BB_COLOUR_YELLOW = (51, 184, 253)       
+
+        #nuclei labels
+        self.cell_type_a = 'epithelial'
+        self.cell_type_b = 'fibroblast'
+        self.cell_type_c = 'lymphocyte'
+
+        #confidence threshold 
+        self.confidence_thresh_a = 0.99
+        self.confidence_thresh_b = 0.99
+        self.confidence_thresh_c = 0.60
+        
 
     def start(self):
         # start the thread to read frames from the queue
@@ -85,52 +84,6 @@ class DrawingHelper:
 
                     self.draw_bounding_box(json_resp, frame_data)
 
-                    self.draw_letter(current_letter, frame_data)
-
-                    self.letter_deque.append(current_letter)
-                    shortened_letter_list = list(self.letter_deque)
-                
-                    unique_letters = []
-                    letter_count_dict = {}
-
-                    for letter in shortened_letter_list:
-                        if letter not in unique_letters:
-                            unique_letters.append(letter)
-
-                        # Maps the letters which have appeared in the last self.FRAME_THRESHOLD number of frames
-                        # to their respective counts.  e.g. {"a": 11, "b": 1} over the past 12 frames.
-                        letter_count_dict[letter] = shortened_letter_list.count(letter)
-
-                    value_count_list = []
-                    for _, val in letter_count_dict.items():
-                        # Equivalent to the letter_count_dict but with only the values.
-                        value_count_list.append(val)
-
-                    # If there are two unique letters that have been inferred recently we need to decide which
-                    # one to display. Therefore we count the number of instances of each letter and select the
-                    # one that appears most frequently.
-                    if len(unique_letters) == 2:
-                        for i in range(len(shortened_letter_list)):
-                            shortened_letter_list[i] = max(letter_count_dict.keys(), key=(lambda key: letter_count_dict[key]))
-
-                    # TODO: FIGURE OUT WHAT THE FUCK THIS DOES.
-                    if ((len(value_count_list) == 1) or (len(value_count_list) == 2 and value_count_list[1] == 1 or value_count_list[0] == 1)
-                        or (len(value_count_list) == 2 and value_count_list[0] > (self.FRAME_THRESHOLD // 2) or value_count_list[1] > ( self.FRAME_THRESHOLD // 2))):
-                        self.constant_letter_count += 1
-                    else:
-                        self.constant_letter_count = 0
-
-                    if len(unique_letters) < 2 and self.constant_letter_count == self.FRAME_THRESHOLD:
-                        if unique_letters[0] in self.WIDE_LETTER_LIST:
-                            self.count_slim_letter += 1
-                            wide_dict_key = str(self.count_wide_letter * self.WIDE_LETTER_FACTOR + self.count_slim_letter * self.SLIM_LETTER_FACTOR)
-                            self.constant_letter_dict[wide_dict_key] = unique_letters[0]
-                        else:
-                            self.count_wide_letter += 1
-                            slim_dict_key = str(self.count_wide_letter * self.WIDE_LETTER_FACTOR + self.count_slim_letter * self.SLIM_LETTER_FACTOR)
-                            self.constant_letter_dict[slim_dict_key] = unique_letters[0]
-
-                    self.draw_constant_letters(self.constant_letter_dict, frame_data)
                     return frame_data
 
                 except queue.Empty:
@@ -146,28 +99,71 @@ class DrawingHelper:
         self.stopped = True
 
     def draw_bounding_box(self, json_resp, image):
-        x_max = json_resp[0]['xmax']
-        y_max = json_resp[0]['ymax']
+        
+        for i in range(len(json_resp)):
+            #apply confidence thresholds to json response then execute
+            if (json_resp[i]['confidence'] >= self.confidence_thresh_a) & (json_resp[i]['confidence'] >= self.confidence_thresh_b) & (json_resp[i]['confidence'] >= self.confidence_thresh_c): 
 
-        x_min = json_resp[0]['xmin']
-        y_min = json_resp[0]['ymin']
+                #print('CONFIDENCE:', json_resp[i]['confidence'])
 
-        cv2.rectangle(image, (x_max,y_max), (x_min, y_min), self.BB_COLOUR, self.BB_THICKNESS)
-	
-    def draw_letter(self, label, image):
-        # Coords for drawing
-        drawing_coords = (int(0.5 * self.VID_HEIGHT), int(0.8 * self.VID_WIDTH))
-        cv2.putText(image, label, drawing_coords, self.FONT, 2.0, self.FONT_COLOUR, 2, cv2.LINE_AA)
+                x_max = json_resp[i]['xmax'] 
+                y_max = json_resp[i]['ymax'] 
 
-    def draw_constant_letters(self, letter_dict, image):    
-        # define our empty black box to put our spelt letters in at bottom of screen
-        rect_top_left = (int(0.1 * self.VID_HEIGHT), int(0.85 * self.VID_WIDTH))
-        rect_bottom_right = (int(0.9 * self.VID_HEIGHT), int(0.95 * self.VID_WIDTH))
-        cv2.rectangle(image, rect_top_left, rect_bottom_right, self.RECTANGLE_BACKGROUND, cv2.FILLED)
+                x_min = json_resp[i]['xmin'] 
+                y_min = json_resp[i]['ymin'] 
 
-        x_start = int(0.1 * self.VID_HEIGHT)
-        y_start = int(self.VID_WIDTH - 56)
+                #resizing bounding box coordinates according to range 
+                x2 = x_max - 10 if x_max - 10 >  10 else x_max + 10
+                x3 = x_min + 10 if x_min + 10 >  10 else x_min - 10
+
+                y2 = y_max - 10 if y_max - 10 >  10 else y_max + 10
+                y3 = y_min + 10 if y_min + 10 >  10 else y_min - 10
+
+                #preferred coordinates to place labels directly above bounding boxes
+                y = y_min - 5 if y_min - 5 > 5 else y_min + 5
+
+                #assign bounding box colours to each class
+                if json_resp[i]['label'] == 'epithelial':
+                    display_BB_colour = self.BB_COLOUR_BLUE
+
+                elif json_resp[i]['label'] == 'fibroblast':
+                    display_BB_colour = self.BB_COLOUR_RED
+
+                elif json_resp[i]['label'] == 'lymphocyte':
+                    display_BB_colour = self.BB_COLOUR_YELLOW
+
+                else:
+                    return(0)
+
+                cv2.rectangle(image, (x2,y2), (x3, y3), display_BB_colour, self.BB_THICKNESS)
+
+                #put text label on bounding box
+                if json_resp[i]['label'] == 'epithelial':
+                    display_label = self.cell_type_a
+
+                elif json_resp[i]['label'] == 'fibroblast':
+                    display_label = self.cell_type_b
+
+                elif json_resp[i]['label'] == 'lymphocyte': 
+                    display_label = self.cell_type_c
+
+                else:
+                    return(0)
+
+                #assign corresponding font colours to each class
+                if json_resp[i]['label'] == 'epithelial':
+                    font_colour = self.FONT_COLOUR_BLUE
+
+                elif json_resp[i]['label'] == 'fibroblast':
+                    font_colour = self.FONT_COLOUR_RED
+
+                elif json_resp[i]['label'] == 'lymphocyte':
+                    font_colour = self.FONT_COLOUR_YELLOW
+
+                else:
+                    return(0)
+
+
+                cv2.putText(image, display_label, (x_min, y), self.FONT, 0.35, font_colour, lineType=cv2.LINE_AA)
     
-        for key, letter in letter_dict.items():
-            x_position = int(x_start + np.int64(key) * self.WIDTH_FACTOR)
-            cv2.putText(image, letter, (x_position, y_start), self.FONT, 2.0, self.FONT_COLOUR, 2, cv2.LINE_AA)
+

@@ -1,4 +1,4 @@
-name: asl_demo
+name: ocb_demo
 channels:
 - defaults
 dependencies:
@@ -73,5 +73,5 @@ dependencies:
 - xz=5.2.3=0
 - yaml=0.1.6=0
 - zlib=1.2.11=0
-prefix: /miniconda3/envs/asl_demo
+prefix: /miniconda3/envs/ocb_demo
 

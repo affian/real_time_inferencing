@@ -19,6 +19,8 @@ class WebcamVideoStream:
         self.VID_WIDTH = int(self.stream.get(cv2.CAP_PROP_FRAME_WIDTH))
         logger.debug(f"Video dimensions: {self.VID_HEIGHT} * {self.VID_WIDTH}")
 
+        
+
     def start(self):
         """
         Start the thread to read frames from the video stream

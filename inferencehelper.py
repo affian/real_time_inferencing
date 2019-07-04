@@ -16,7 +16,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 logger = logging.getLogger("InferenceHelper")
 
 # common items for PowerAI Vision
-POWERAI_BASEURL = "http://9.196.150.55:8009/inference" #8008 for asl
+POWERAI_BASEURL = "http://9.196.150.55:8006/inference" #8008 for asl
 
 # TODO: Should figure out how to generate a CSRF token for PAIV endpoint
 # cookiejar = {'x-auth-token': '6d047c1d-f056-4af3-9c83-f6906e570c30',
@@ -70,6 +70,7 @@ class InferenceHelper:
         objs = None
 
         while (status_code != 200) and (retry_count < 5) and (objs is None):
+            #pause(1)
             try:
                 if retry_count != 0:
                     logger.warning(f"retrying upload for {frame}, attempt {retry_count}")
