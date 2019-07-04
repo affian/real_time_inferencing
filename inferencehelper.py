@@ -108,7 +108,7 @@ class InferenceHelper:
                     frame_data = self.queue.get(block=True) #timeout in seconds
                 except queue.Empty:
                     logger.debug("Slept and nothing to do... Trying again.")
-                    time.sleep(5)
+                    time.sleep(1)
                     continue
 
                 # write frame to JPEG- used by infer_image
