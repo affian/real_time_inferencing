@@ -41,8 +41,8 @@ while(True):
 
 	# The update function returns the drawn frame data which is then displayed on the screen.
 	drawn_frame = drawing_thread.update()
-	#new_frame = cv2.resize(drawn_frame, (812, 586)) #resize the frame
-	cv2.imshow("Coloprog Nuclei Detection", drawn_frame) 
+	new_frame = cv2.resize(drawn_frame, (1285, 690)) #resize the frame
+	cv2.imshow("ColoProg Nuclei Detection", new_frame) 
 	font = cv2.FONT_HERSHEY_SIMPLEX
 	
 	
