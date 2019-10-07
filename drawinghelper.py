@@ -51,8 +51,8 @@ class DrawingHelper:
 
         #confidence threshold 
         self.confidence_thresh_a = 0.99
-        self.confidence_thresh_b = 0.99
-        self.confidence_thresh_c = 0.60
+        self.confidence_thresh_b = 0.98
+        self.confidence_thresh_c = 0.99
         
 
     def start(self):
@@ -82,9 +82,9 @@ class DrawingHelper:
                         current_letter = ''
                         json_resp = [{'xmin': 0, 'ymin': 0, 'xmax': 0, 'ymax': 0, 'confidence': 0, 'label': ''}]
 
-                    self.draw_bounding_box(json_resp, frame_data)
+                    frame_data = self.draw_bounding_box(json_resp, frame_data)
 
-                    return frame_data
+                    return frame_data, json_resp
 
                 except queue.Empty:
                     logger.debug("Slept and nothing to do... Trying again.")
@@ -112,16 +112,6 @@ class DrawingHelper:
                 x_min = json_resp[i]['xmin'] 
                 y_min = json_resp[i]['ymin'] 
 
-                #resizing bounding box coordinates according to range 
-                x2 = x_max - 10 if x_max - 10 >  10 else x_max + 10
-                x3 = x_min + 10 if x_min + 10 >  10 else x_min - 10
-
-                y2 = y_max - 10 if y_max - 10 >  10 else y_max + 10
-                y3 = y_min + 10 if y_min + 10 >  10 else y_min - 10
-
-                #preferred coordinates to place labels directly above bounding boxes
-                y = y_min - 5 if y_min - 5 > 5 else y_min + 5
-
                 #assign bounding box colours to each class
                 if json_resp[i]['label'] == 'epithelial':
                     display_BB_colour = self.BB_COLOUR_BLUE
@@ -135,7 +125,7 @@ class DrawingHelper:
                 else:
                     return(0)
 
-                cv2.rectangle(image, (x2,y2), (x3, y3), display_BB_colour, self.BB_THICKNESS)
+                cv2.rectangle(image, (x_max,y_max), (x_min, y_min), display_BB_colour, self.BB_THICKNESS)
 
                 #put text label on bounding box
                 if json_resp[i]['label'] == 'epithelial':
@@ -164,6 +154,7 @@ class DrawingHelper:
                     return(0)
 
 
-                cv2.putText(image, display_label, (x_min, y), self.FONT, 0.35, font_colour, lineType=cv2.LINE_AA)
-    
+                cv2.putText(image, display_label, (x_min, y_min), self.FONT, 0.35, font_colour, lineType=cv2.LINE_AA)
+        return image
+
 

@@ -112,9 +112,12 @@ class InferenceHelper:
                     time.sleep(1)
                     continue
 
+
+
                 # write frame to JPEG- used by infer_image
                 cv2.imwrite(frame_data['name'], frame_data['frame'])
                 (status_code, json_resp) = self.infer_image(frame_data['name'])
+
 
                 if status_code == 200:
                     # TODO: Clean this up not sure I'm using the frame_data object outside of the json_resp.
